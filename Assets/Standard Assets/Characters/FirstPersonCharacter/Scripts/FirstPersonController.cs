@@ -10,6 +10,8 @@ namespace UnityStandardAssets.Characters.FirstPerson
     [RequireComponent(typeof (AudioSource))]
     public class FirstPersonController : MonoBehaviour
     {
+        [SerializeField] private bool m_IsSwimming;
+        [SerializeField] private float m_SwimGravityMultiplier;
         [SerializeField] private bool m_IsWalking;
         [SerializeField] private float m_WalkSpeed;
         [SerializeField] private float m_RunSpeed;
@@ -123,8 +125,26 @@ namespace UnityStandardAssets.Characters.FirstPerson
             }
             else
             {
-                m_MoveDir += Physics.gravity*m_GravityMultiplier*Time.fixedDeltaTime;
+                if(!m_IsSwimming)
+                {
+                    m_MoveDir += Physics.gravity * m_GravityMultiplier * Time.fixedDeltaTime;
+                }
+                else
+                {
+                    //Swim 
+                    m_MoveDir.x = desiredMove.x * speed;
+                    m_MoveDir.z = desiredMove.z * speed;
+                    m_MoveDir.y += Physics.gravity.y * m_SwimGravityMultiplier * Time.fixedDeltaTime;
+                    if (m_Jump)
+                    {
+                        m_MoveDir.y = m_JumpSpeed; 
+                        m_Jump = false;
+                        m_Jumping = true;
+                    }
+                }
             }
+
+            
             m_CollisionFlags = m_CharacterController.Move(m_MoveDir*Time.fixedDeltaTime);
 
             ProgressStepCycle(speed);
@@ -240,20 +260,27 @@ namespace UnityStandardAssets.Characters.FirstPerson
         }
 
 
-        private void OnControllerColliderHit(ControllerColliderHit hit)
+        private void OnTriggerEnter(Collider coll)
         {
-            Rigidbody body = hit.collider.attachedRigidbody;
-            //dont move the rigidbody if the character is on top of it
-            if (m_CollisionFlags == CollisionFlags.Below)
+            
+            if(coll.gameObject.name == "WaterCollider")
             {
-                return;
+                RenderSettings.fog = true;
+                 RenderSettings.fogColor = Color.blue;    
+                m_IsSwimming = true;
+                m_IsWalking = false;
             }
-
-            if (body == null || body.isKinematic)
+        }
+        private void OnTriggerExit(Collider coll)
+        {
+            
+            if (coll.gameObject.name == "WaterCollider")
             {
-                return;
+                m_IsSwimming = false;
+                m_IsWalking = true;
+                RenderSettings.fog = false;
             }
-            body.AddForceAtPosition(m_CharacterController.velocity*0.1f, hit.point, ForceMode.Impulse);
         }
     }
+
 }
