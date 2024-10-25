@@ -29,6 +29,7 @@ namespace UnityStandardAssets.Characters.FirstPerson
         [SerializeField] private AudioClip[] m_FootstepSounds;    // an array of footstep sounds that will be randomly selected from.
         [SerializeField] private AudioClip m_JumpSound;           // the sound played when character leaves the ground.
         [SerializeField] private AudioClip m_LandSound;           // the sound played when character touches back on ground.
+        [SerializeField] private bool m_IsInMud;
 
         private Camera m_Camera;
         private bool m_Jump;
@@ -98,6 +99,7 @@ namespace UnityStandardAssets.Characters.FirstPerson
         {
             float speed;
             GetInput(out speed);
+            float mudspeed = speed * 0.25f;
             // always move along the camera forward as it is the direction that it being aimed at
             Vector3 desiredMove = transform.forward*m_Input.y + transform.right*m_Input.x;
 
@@ -107,9 +109,16 @@ namespace UnityStandardAssets.Characters.FirstPerson
                                m_CharacterController.height/2f, Physics.AllLayers, QueryTriggerInteraction.Ignore);
             desiredMove = Vector3.ProjectOnPlane(desiredMove, hitInfo.normal).normalized;
 
-            m_MoveDir.x = desiredMove.x*speed;
-            m_MoveDir.z = desiredMove.z*speed;
-
+            if(m_IsInMud)
+            {
+                m_MoveDir.x = desiredMove.x*mudspeed;
+                m_MoveDir.z = desiredMove.z*mudspeed;
+            }
+            else
+            {
+                m_MoveDir.x = desiredMove.x*speed;
+                m_MoveDir.z = desiredMove.z*speed;
+            }
 
             if (m_CharacterController.isGrounded)
             {
@@ -270,6 +279,11 @@ namespace UnityStandardAssets.Characters.FirstPerson
                 m_IsSwimming = true;
                 m_IsWalking = false;
             }
+            if(coll.gameObject.name == "MudCollider")
+            {
+                m_IsInMud = true;
+                m_IsWalking = false;
+            }
         }
         private void OnTriggerExit(Collider coll)
         {
@@ -280,6 +294,15 @@ namespace UnityStandardAssets.Characters.FirstPerson
                 m_IsWalking = true;
                 RenderSettings.fog = false;
             }
+            if(coll.gameObject.name == "MudCollider")
+            {
+                m_IsInMud = false;
+                m_IsWalking = true;
+            }
+        }
+        private void Slip()
+        {
+            
         }
     }
 
